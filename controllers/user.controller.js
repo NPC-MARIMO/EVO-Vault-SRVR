@@ -65,4 +65,28 @@ const login = async (req, res) => {
     }
 };
 
-export { register, login }
+const getUser = async (req,res) => {
+        try {
+            const user = await User.findById(req.user.id)
+            if(!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            res.status(200).json({
+                message : "Heyy, You are logged in",    
+                user : {
+                    _id : user._id,
+                    name : user.name,
+                    email : user.email,
+                    avatar : user.avatar,
+                    families : user.families,
+                    bio : user.bio
+                }
+            })
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Server error' });
+        }
+}
+
+export { register, login, getUser }
