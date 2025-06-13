@@ -20,48 +20,37 @@ const handleImageUpload = async (req, res) => {
             message: "Image upload failed",
         });
     }
-};
-const updateProfile = async (req, res) => {
-  try {
-    const { name, username, bio, email, avatar, password, confirmPassword } = req.body;
-    // const userId = req.user?.id; // coming from auth middleware
+};const updateProfile = async (req, res) => {
+    try {
+        const { name, username, bio, email, avatar, password, confirmPassword } = req.body;
 
-    // if (!userId) {
-    //   return res.status(401).json({ message: 'Unauthorized' });
-    // }
+        const user = await User.findOne({ email }); // ✅ CORRECTED
 
-    const user = await User.findOne(email);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if ((password && !confirmPassword) || (!password && confirmPassword)) {
+            return res.status(400).json({ message: 'Both password and confirm password are required' });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ message: 'Passwords do not match' });
+        }
+
+        if (name) user.name = name;
+        if (username) user.username = username;
+        if (bio) user.bio = bio;
+        if (avatar) user.avatar = { url: avatar };
+        if (password) user.password = password;
+
+        await user.save();
+        return res.status(200).json({ message: 'Profile updated successfully' });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
     }
-
-    // Password validation
-    if ((password && !confirmPassword) || (!password && confirmPassword)) {
-      return res.status(400).json({ message: 'Both password and confirm password are required' });
-    }
-
-    if (password && confirmPassword && password !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match' });
-    }
-
-    // Update fields only if provided
-    if (name) user.name = name;
-    if (username) user.username = username;
-    if (bio) user.bio = bio;
-    if (avatar) user.avatar = { url: avatar }; // overwrite safely
-
-    if (password && confirmPassword) {
-      user.password = password; // Assuming hashing in schema pre-save hook
-    }
-
-    await user.save();
-    return res.status(200).json({ message: 'Profile updated successfully' });
-
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Server error' });
-  }
 };
 
 
