@@ -17,11 +17,31 @@ export const sendJoinRequest = async (req, res) => {
     }
 
     const request = new JoinRequest({ from, to, family: familyId });
-    request.save();
+    await request.save();
     
 
     res.status(200).json({ message: "Join request sent", request });
   } catch (err) {
     res.status(500).json({ message: "Something went wrong", error: err.message });
+  }
+};
+
+
+
+export const getAllJoinRequests = async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await User.findOne({ email });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const requests = await JoinRequest.find({ to: user._id })
+      .populate("from", "name email avatar")
+      .populate("family", "name avatar description");
+
+    return res.status(200).json({ requests });
+  } catch (error) {
+    console.error("Error fetching join requests:", error.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
