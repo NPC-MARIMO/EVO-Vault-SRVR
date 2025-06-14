@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser')
 const authRouter = require('./routes/user.route')
 const profileRouter = require('./routes/profile.route')
 const familyRouter = require('./routes/family.route')
+const requestRouter = require('./routes/request.route')
 
 
 const port = process.env.PORT
@@ -35,7 +36,8 @@ app.use(express.json());
 
 app.use("/api/auth", authRouter); 
 app.use("/api/profile", profileRouter);
-app.use('/api/family', familyRouter)
+app.use('/api/family', familyRouter);
+app.use('/api/request', requestRouter);
 
 
 app.listen((port), () => console.log(`Example app listening on port ${port}`))      
