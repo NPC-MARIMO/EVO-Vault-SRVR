@@ -10,13 +10,14 @@ const cookieParser = require('cookie-parser')
 
 const authRouter = require('./routes/user.route')
 const profileRouter = require('./routes/profile.route')
+const familyRouter = require('./routes/family.route')
 
 
 const port = process.env.PORT
 
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = ['http://localhost:5173'];
+    const allowed = [process.env.CORS_ORIGIN];
     if (!origin || allowed.includes(origin.replace(/\/$/, ''))) {
       callback(null, true);
     } else {
@@ -34,6 +35,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRouter); 
 app.use("/api/profile", profileRouter);
+app.use('/api/family', familyRouter)
 
 
 app.listen((port), () => console.log(`Example app listening on port ${port}`))      

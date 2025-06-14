@@ -20,7 +20,7 @@ const handleImageUpload = async (req, res) => {
             message: "Image upload failed",
         });
     }
-};const updateProfile = async (req, res) => {
+}; const updateProfile = async (req, res) => {
     try {
         const { name, username, bio, email, avatar, password, confirmPassword } = req.body;
 
@@ -53,5 +53,25 @@ const handleImageUpload = async (req, res) => {
     }
 };
 
+const getParticularUser = async (req, res) => {
+  try {
+    const { search } = req.query; // 👈 Not req.body
 
-export { handleImageUpload, updateProfile };
+    let user = await User.findOne({ email: search });
+    if (!user) {
+      user = await User.findOne({ username: search });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User Not Found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export { handleImageUpload, updateProfile, getParticularUser };
