@@ -32,11 +32,8 @@ export const createMemory = async (req, res) => {
             });
         }
 
-        // Check if user is a member of the family
-        const isMember = familyObj.members.some(member => 
-            member.toString() === uploadedBy.toString()
-        );
-        
+        // Verify user is a member of the family
+        const isMember = familyObj.members.some(member => member.user.toString() === user._id.toString());
         if (!isMember) {
             return res.status(403).json({
                 success: false,
@@ -74,3 +71,48 @@ export const createMemory = async (req, res) => {
         });
     }
 }
+
+export const getFamilyMemories = async (req, res) => {
+    console.log('[getFamilyMemories] Request received for familyId:', req.params);
+
+    try {
+        const { familyId } = req.params;
+        console.log('[getFamilyMemories] Processing family:', familyId);
+
+        // Verify family exists
+        console.log('[getFamilyMemories] Checking family existence...');
+        const familyExists = await Family.findById({ _id: familyId });
+
+        if (!familyExists) {
+            console.warn('[getFamilyMemories] Family not found:', familyId);
+            return res.status(404).json({
+                success: false,
+                message: "Family not found"
+            });
+        }
+        console.log('[getFamilyMemories] Family verified');
+
+        console.log('[getFamilyMemories] Querying memories...');
+        const memories = await Media.find({ family: familyId })
+            .populate('uploadedBy', 'name email avatar')
+
+        console.log(`[getFamilyMemories] Found ${memories.length} memories`);
+
+        res.status(200).json({
+            success: true,
+            message: "Memories fetched successfully",
+            data: memories
+        });
+        console.log('[getFamilyMemories] Response sent successfully');
+
+    } catch (error) {
+        console.error('[getFamilyMemories] Error:', error);
+        console.error('[getFamilyMemories] Stack trace:', error.stack);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
