@@ -20,7 +20,11 @@ const handleImageUpload = async (req, res) => {
             message: "Image upload failed",
         });
     }
-}; const updateProfile = async (req, res) => {
+}; 
+
+
+
+const updateProfile = async (req, res) => {
     try {
         const { name, username, bio, email, avatar, password, confirmPassword } = req.body;
 

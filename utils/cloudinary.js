@@ -20,4 +20,36 @@ const imageUploadUtil = async (buffer, mimetype) => {
   });
 };
 
-module.exports = { cloudinary, upload, imageUploadUtil };
+
+const videoUploadUtil = async (fileBuffer, mimeType) => {
+    try {
+        // Convert buffer to data URI
+        const dataUri = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+        
+        const uploadOptions = {
+            resource_type: "video",
+            chunk_size: 6000000, // 6MB chunks for large files
+            eager: [
+                { width: 300, height: 300, crop: "pad", audio_codec: "none" }, // thumbnail
+                { quality: "auto", fetch_format: "auto" } // optimized version
+            ],
+            eager_async: true,
+            folder: "family_memories/videos"
+        };
+
+        const result = await cloudinary.uploader.upload(dataUri, uploadOptions);
+        
+        return {
+            url: result.secure_url,
+            public_id: result.public_id,
+            duration: result.duration,
+            format: result.format,
+            thumbnail: result.eager[0].secure_url // thumbnail URL
+        };
+    } catch (error) {
+        console.error("Cloudinary Video Upload Error:", error);
+        throw error;
+    }
+};
+
+module.exports = { cloudinary, upload, imageUploadUtil, videoUploadUtil };

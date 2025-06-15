@@ -11,7 +11,7 @@ const familySchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    description: { 
+    description: {
       type: String,
       default: '',
     },
@@ -39,6 +39,11 @@ const familySchema = new mongoose.Schema(
         },
       },
     ],
+    memories: {
+      type: [mongoose.Schema.Types.ObjectId], // Array of Media references
+      ref: 'Media', // Reference to Media model
+      default: [] // Initialize as empty array
+    },
     joinPolicy: {
       type: String,
       enum: ['auto', 'approval'],

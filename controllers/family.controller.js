@@ -1,3 +1,4 @@
+import mongoose from "mongoose"; // ✅ Needed for ObjectId
 import Family from "../model/family.model.js";
 import User from "../model/user.model.js";
 const createFamily = async (req, res) => {
@@ -42,32 +43,52 @@ const createFamily = async (req, res) => {
         res.status(500).json({ message: "Server error, try again later" });
     }
 };
-
 const fetchFamilies = async (req, res) => {
   try {
     const { email } = req.params;
-    const user = await User.findOne({ email });
+    console.log("📥 Incoming request to fetch families for email:", email);
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log("📧 Normalized email:", normalizedEmail);
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      console.warn("⚠️ No user found with email:", normalizedEmail);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("✅ User found:", {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+    });
+
+    const userId = new mongoose.Types.ObjectId(user._id);
+    console.log("🔑 Converted userId (ObjectId):", userId.toString());
 
     const families = await Family.find({
-      members: {
-        $elemMatch: {
-          user: user._id,
-          status: 'approved',
-        },
-      },
+      "members.user": userId,
     })
       .populate("creator", "name email")
-      .populate("members.user", "name email")
-    //   .populate("vaults");
+      .populate("members.user", "name email");
+
+    console.log(`📦 Total families fetched for ${normalizedEmail}:`, families.length);
+    families.forEach((fam, i) => {
+      console.log(`  #${i + 1}: ${fam.name} | Members: ${fam.members.length}`);
+      fam.members.forEach((m, j) => {
+        console.log(
+          `    → Member ${j + 1}: ${m.user?.name || 'N/A'} (${m.user?.email || 'N/A'}) | Role: ${m.role} | Status: ${m.status}`
+        );
+      });
+    });
 
     return res.status(200).json(families);
   } catch (err) {
-    console.error("Error fetching user families:", err);
+    console.error("❌ Error fetching user families:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const getParticularFamily = async (req, res) => {
   try {

@@ -18,7 +18,7 @@ export const sendJoinRequest = async (req, res) => {
 
     const request = new JoinRequest({ from, to, family: familyId });
     await request.save();
-    
+
 
     res.status(200).json({ message: "Join request sent", request });
   } catch (err) {
@@ -43,5 +43,66 @@ export const getAllJoinRequests = async (req, res) => {
   } catch (error) {
     console.error("Error fetching join requests:", error.message);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateRequest = async (req, res) => {
+  try {
+    const { reqId, action } = req.body;
+    const { email } = req.params;
+    console.log("🔥 req.body.action:", req.body.action);
+
+
+    if (!reqId || !action) {
+      return res.status(400).json({ message: "reqId and action are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const request = await JoinRequest.findById(reqId);
+    if (!request) return res.status(404).json({ message: "Request not found" });
+
+    if (request.to.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to update this request" });
+    }
+
+    if (request.status !== "pending") {
+      return res.status(400).json({ message: "Request already processed" });
+    }
+
+    if (action === "accepted") {
+      request.status = "accepted";
+      await request.save();
+
+      const family = await Family.findById(request.family);
+
+      if (!family) return res.status(404).json({ message: "Family not found" });
+
+      if (!family.members.some(m => m.user.toString() === request.to.toString())) {
+        family.members.push({
+          user: request.to,
+          role: "viewer",
+          status: "approved",
+          joinedAt: new Date()
+        });
+        await family.save();
+      }
+
+
+      return res.status(200).json({ message: "Request accepted", request });
+    }
+
+    if (action === "rejected") {
+      request.status = "rejected";
+      await request.save();
+      return res.status(200).json({ message: "Request rejected", request });
+    }
+
+    return res.status(400).json({ message: "Invalid action" });
+
+  } catch (error) {
+    console.error("❌ Error in updateRequest:", error.message);
+    return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
