@@ -18,15 +18,18 @@ const mediaRouter = require('./routes/media.route')
 const port = process.env.PORT
 
 app.use(cors({
-  origin: [
-    process.env.CORS_ORIGIN,
-    'https://evo-vault-theta.vercel.app', // Explicitly add your frontend URL
-    'http://localhost:3000' // For local development
-  ],
+  origin: (origin, callback) => {
+    const allowed = [process.env.CORS_ORIGIN];
+    if (!origin || allowed.includes(origin.replace(/\/$/, ''))) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS Not Allowed'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+
 
 app.use(cookieParser());
 app.use(express.json());
