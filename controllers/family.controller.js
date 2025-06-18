@@ -46,25 +46,17 @@ const createFamily = async (req, res) => {
 const fetchFamilies = async (req, res) => {
   try {
     const { email } = req.params;
-    console.log("📥 Incoming request to fetch families for email:", email);
 
     const normalizedEmail = email.trim().toLowerCase();
-    console.log("📧 Normalized email:", normalizedEmail);
 
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      console.warn("⚠️ No user found with email:", normalizedEmail);
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("✅ User found:", {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-    });
+    
 
     const userId = new mongoose.Types.ObjectId(user._id);
-    console.log("🔑 Converted userId (ObjectId):", userId.toString());
 
     const families = await Family.find({
       "members.user": userId,
@@ -72,15 +64,6 @@ const fetchFamilies = async (req, res) => {
       .populate("creator", "name email")
       .populate("members.user", "name email");
 
-    console.log(`📦 Total families fetched for ${normalizedEmail}:`, families.length);
-    families.forEach((fam, i) => {
-      console.log(`  #${i + 1}: ${fam.name} | Members: ${fam.members.length}`);
-      fam.members.forEach((m, j) => {
-        console.log(
-          `    → Member ${j + 1}: ${m.user?.name || 'N/A'} (${m.user?.email || 'N/A'}) | Role: ${m.role} | Status: ${m.status}`
-        );
-      });
-    });
 
     return res.status(200).json(families);
   } catch (err) {
@@ -117,7 +100,7 @@ const deleteFamilyMember = async (req, res) => {
       return res.status(404).json({ message: "Family not found" });
     }
 
-    if (family.members.role !== "admin") {
+    if (family.members.role === "admin") {
       return res.status(403).json({ message: "You are not authorized to perform this action" });
     }
 
@@ -146,12 +129,13 @@ const deleteFamilyMember = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 }
+
 const updateMemberRole = async (req, res) => {
   try {
     const { familyId, memberId } = req.params;
     const { role } = req.body;
+    
 
-    // Validation
     if (!familyId || !memberId || !role) {
       return res.status(400).json({
         success: false,
@@ -159,7 +143,14 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
-    // Find family
+    const validRoles = ['admin', 'viewer'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role specified"
+      });
+    }
+
     const family = await Family.findById(familyId);
     if (!family) {
       return res.status(404).json({
@@ -168,7 +159,6 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
-    // Check if user exists (optional - since we're updating role in family, not user doc)
     const userExists = await User.exists({ _id: memberId });
     if (!userExists) {
       return res.status(404).json({
@@ -177,7 +167,6 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
-    // Find member in family (fixed the arrow function syntax)
     const memberIndex = family.members.findIndex(
       member => member.user.toString() === memberId
     );
@@ -189,8 +178,8 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
-    // Additional validation: Prevent removing last admin
-    const isLastAdmin = family.members.filter(m => m.role === 'admin').length === 1 &&
+    const adminMembers = family.members.filter(m => m.role === 'admin');
+    const isLastAdmin = adminMembers.length === 1 &&
       family.members[memberIndex].role === 'admin';
 
     if (isLastAdmin && role !== 'admin') {
@@ -200,7 +189,6 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
-    // Update role (fixed the assignment operator)
     family.members[memberIndex].role = role;
     await family.save();
 
@@ -223,4 +211,45 @@ const updateMemberRole = async (req, res) => {
     });
   }
 };
-export { createFamily, fetchFamilies, getParticularFamily, deleteFamilyMember, updateMemberRole };
+
+const updateFamilyDetails = async (req, res) => {
+  try {
+    const { familyId } = req.params;
+    const { name, avatar, description, joinPolicy } = req.body.formData;
+    console.log(name, avatar, description, joinPolicy);
+    
+
+    const family = await Family.findById(familyId);
+    if (!family) {
+      return res.status(404).json({
+        success: false,
+        message: "Family not found"
+      });
+    }
+
+    family.name = name || family.name;
+    family.avatar = avatar || family.avatar;
+    family.description = description || family.description;
+    family.joinPolicy = joinPolicy || family.joinPolicy;
+
+    await family.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Family details updated successfully",
+      data: family
+    });
+
+  } catch (error) {
+
+    console.error("Error updating family details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+    
+  }
+}
+
+export { createFamily, fetchFamilies, getParticularFamily, deleteFamilyMember, updateMemberRole, updateFamilyDetails };

@@ -50,7 +50,6 @@ export const updateRequest = async (req, res) => {
   try {
     const { reqId, action } = req.body;
     const { email } = req.params;
-    console.log("🔥 req.body.action:", req.body.action);
 
 
     if (!reqId || !action) {
