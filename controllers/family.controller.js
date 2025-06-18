@@ -1,6 +1,9 @@
 import mongoose from "mongoose"; // ✅ Needed for ObjectId
 import Family from "../model/family.model.js";
 import User from "../model/user.model.js";
+import JoinRequest from "../model/request.model.js";
+import Media from '../model/media.model.js'
+
 const createFamily = async (req, res) => {
   try {
     const { name, avatar, description, joinPolicy, email } = req.body;
@@ -54,7 +57,7 @@ const fetchFamilies = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    
+
 
     const userId = new mongoose.Types.ObjectId(user._id);
 
@@ -134,7 +137,7 @@ const updateMemberRole = async (req, res) => {
   try {
     const { familyId, memberId } = req.params;
     const { role } = req.body;
-    
+
 
     if (!familyId || !memberId || !role) {
       return res.status(400).json({
@@ -216,8 +219,7 @@ const updateFamilyDetails = async (req, res) => {
   try {
     const { familyId } = req.params;
     const { name, avatar, description, joinPolicy } = req.body.formData;
-    console.log(name, avatar, description, joinPolicy);
-    
+
 
     const family = await Family.findById(familyId);
     if (!family) {
@@ -248,8 +250,83 @@ const updateFamilyDetails = async (req, res) => {
       message: "Internal server error",
       error: error.message
     });
-    
+
   }
 }
 
-export { createFamily, fetchFamilies, getParticularFamily, deleteFamilyMember, updateMemberRole, updateFamilyDetails };
+const deleteParticularFamily = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { familyId } = req.params;
+
+    // Validate familyId exists and is valid MongoDB ID
+    if (!familyId || !mongoose.Types.ObjectId.isValid(familyId)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Valid family ID is required",
+        error: !familyId ? "Family ID is missing" : "Invalid family ID format"
+      });
+    }
+
+    // Convert string ID to ObjectId
+    const familyObjectId = new mongoose.Types.ObjectId(familyId);
+
+    // Verify family exists
+    const family = await Family.findById(familyObjectId).session(session);
+    if (!family) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Family not found"
+      });
+    }
+
+
+    // Remove family from all users' families arrays
+    await User.updateMany(
+      { families: familyObjectId },
+      { $pull: { families: familyObjectId } },
+      { session }
+    );
+
+    // Delete all related data using the ObjectId
+    await Media.deleteMany({ family: familyObjectId }, { session });
+    await JoinRequest.deleteMany({ family: familyObjectId }, { session });
+
+    // Delete the family
+    const deletedFamily = await Family.findByIdAndDelete(familyObjectId, { session });
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      success: true,
+      message: "Family and all related data deleted successfully",
+      data: deletedFamily
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Error deleting family:", error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: error.message
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+export { createFamily, fetchFamilies, getParticularFamily, deleteFamilyMember, updateMemberRole, updateFamilyDetails, deleteParticularFamily };
