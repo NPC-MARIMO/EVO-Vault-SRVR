@@ -329,4 +329,109 @@ const deleteParticularFamily = async (req, res) => {
   }
 };
 
-export { createFamily, fetchFamilies, getParticularFamily, deleteFamilyMember, updateMemberRole, updateFamilyDetails, deleteParticularFamily };
+const getFiveRandomFamilySugs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    const excludedFamilyIds = user.families;
+
+    const families = await Family.aggregate([
+      {
+        $match: {
+          joinPolicy: 'auto',
+          _id: { $nin: excludedFamilyIds }
+        }
+      },
+      { $sample: { size: 5 } },
+      { $project: { _id: 1, name: 1, avatar: 1, description: 1, members: 1, creator: 1 } }
+    ]);
+
+
+    return res.status(200).json({
+      success: true,
+      suggestions: families
+    });
+  } catch (error) {
+    console.error("💥 Error fetching random families:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching suggestions"
+    });
+  }
+};
+
+const joinRandomFamily = async (req, res) => {
+  try {
+    const { familyId, userId } = req.body;
+    if (!familyId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const family = await Family.findById(familyId);
+    if (!family) {
+      return res.status(404).json({
+        success: false,
+        message: "Family not found"
+      });
+    }
+
+    if (family.joinPolicy !== 'auto') {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to join this family"
+      });
+    }
+
+    family.members.push({
+      user: userId,
+      role: 'viewer',
+      status: 'approved'
+    });
+
+    user.families.push({
+      family: familyId,
+      role: 'Viewer'
+    });
+
+    await family.save();
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully joined the family",
+      family
+    });
+
+  } catch (error) {
+
+    console.error("💥 Error joining random family:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while joining family"
+    });
+  }
+}
+
+
+export {
+  createFamily,
+  fetchFamilies,
+  getParticularFamily,
+  deleteFamilyMember,
+  updateMemberRole,
+  updateFamilyDetails,
+  deleteParticularFamily,
+  getFiveRandomFamilySugs,
+  joinRandomFamily
+};

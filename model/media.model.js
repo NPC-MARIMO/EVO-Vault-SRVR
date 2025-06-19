@@ -29,6 +29,10 @@ const mediaSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    vault : {
+        type : Boolean,
+        default : false
+    }
   },
   { timestamps: true }
 );
