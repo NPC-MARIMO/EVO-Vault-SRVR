@@ -411,11 +411,24 @@ const joinRandomFamily = async (req, res) => {
       });
     }
 
+    
+
     if (family.joinPolicy !== "auto") {
       return res.status(403).json({
         success: false,
         message: "You are not allowed to join this family",
       });
+    }
+
+    const existingRequest = await JoinRequest.findOne({
+      to: userId,
+      family: familyId,
+      status: "pending",
+    });
+
+    if (existingRequest) {
+      existingRequest.status = "accepted";
+      await existingRequest.save();
     }
 
     family.members.push({
