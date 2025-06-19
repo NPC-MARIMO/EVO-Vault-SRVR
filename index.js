@@ -17,7 +17,12 @@ const mediaRouter = require('./routes/media.route')
 
 const port = process.env.PORT
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true, // allow origin to be reflected back
+    credentials: true,
+  })
+);
 
 
 
