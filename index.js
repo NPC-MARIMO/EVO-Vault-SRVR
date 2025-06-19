@@ -17,17 +17,7 @@ const mediaRouter = require('./routes/media.route')
 
 const port = process.env.PORT
 
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = [process.env.CORS_ORIGIN];
-    if (!origin || allowed.includes(origin.replace(/\/$/, ''))) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS Not Allowed'));
-    }
-  },
-  credentials: true,
-}));
+app.use(cors());
 
 
 

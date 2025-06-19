@@ -2,7 +2,7 @@ import mongoose from "mongoose"; // ✅ Needed for ObjectId
 import Family from "../model/family.model.js";
 import User from "../model/user.model.js";
 import JoinRequest from "../model/request.model.js";
-import Media from '../model/media.model.js'
+import Media from "../model/media.model.js";
 
 const createFamily = async (req, res) => {
   try {
@@ -57,8 +57,6 @@ const fetchFamilies = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-
-
     const userId = new mongoose.Types.ObjectId(user._id);
 
     const families = await Family.find({
@@ -67,14 +65,12 @@ const fetchFamilies = async (req, res) => {
       .populate("creator", "name email")
       .populate("members.user", "name email");
 
-
     return res.status(200).json(families);
   } catch (err) {
     console.error("❌ Error fetching user families:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 
 const getParticularFamily = async (req, res) => {
   try {
@@ -104,17 +100,19 @@ const deleteFamilyMember = async (req, res) => {
     }
 
     if (family.members.role === "admin") {
-      return res.status(403).json({ message: "You are not authorized to perform this action" });
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to perform this action" });
     }
 
-    const memberIndex = family.members.findIndex(member =>
-      member.user.toString() === memberId
+    const memberIndex = family.members.findIndex(
+      (member) => member.user.toString() === memberId
     );
 
     if (memberIndex === -1) {
       return res.status(404).json({
         success: false,
-        message: "User is not a member of this family"
+        message: "User is not a member of this family",
       });
     }
 
@@ -124,33 +122,31 @@ const deleteFamilyMember = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User removed from family successfully",
-      data: family
+      data: family,
     });
-
   } catch (error) {
     console.error("Error deleting family member:", error);
     return res.status(500).json({ message: "Server error" });
   }
-}
+};
 
 const updateMemberRole = async (req, res) => {
   try {
     const { familyId, memberId } = req.params;
     const { role } = req.body;
 
-
     if (!familyId || !memberId || !role) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required (familyId, memberId, role)"
+        message: "All fields are required (familyId, memberId, role)",
       });
     }
 
-    const validRoles = ['admin', 'viewer'];
+    const validRoles = ["admin", "viewer"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role specified"
+        message: "Invalid role specified",
       });
     }
 
@@ -158,7 +154,7 @@ const updateMemberRole = async (req, res) => {
     if (!family) {
       return res.status(404).json({
         success: false,
-        message: "Family not found"
+        message: "Family not found",
       });
     }
 
@@ -166,29 +162,29 @@ const updateMemberRole = async (req, res) => {
     if (!userExists) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
     const memberIndex = family.members.findIndex(
-      member => member.user.toString() === memberId
+      (member) => member.user.toString() === memberId
     );
 
     if (memberIndex === -1) {
       return res.status(404).json({
         success: false,
-        message: "The selected member is not part of this family"
+        message: "The selected member is not part of this family",
       });
     }
 
-    const adminMembers = family.members.filter(m => m.role === 'admin');
-    const isLastAdmin = adminMembers.length === 1 &&
-      family.members[memberIndex].role === 'admin';
+    const adminMembers = family.members.filter((m) => m.role === "admin");
+    const isLastAdmin =
+      adminMembers.length === 1 && family.members[memberIndex].role === "admin";
 
-    if (isLastAdmin && role !== 'admin') {
+    if (isLastAdmin && role !== "admin") {
       return res.status(400).json({
         success: false,
-        message: "Cannot remove the last admin of the family"
+        message: "Cannot remove the last admin of the family",
       });
     }
 
@@ -201,16 +197,15 @@ const updateMemberRole = async (req, res) => {
       data: {
         familyId: family._id,
         memberId,
-        newRole: role
-      }
+        newRole: role,
+      },
     });
-
   } catch (error) {
     console.error("Error updating member role:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -220,12 +215,11 @@ const updateFamilyDetails = async (req, res) => {
     const { familyId } = req.params;
     const { name, avatar, description, joinPolicy } = req.body.formData;
 
-
     const family = await Family.findById(familyId);
     if (!family) {
       return res.status(404).json({
         success: false,
-        message: "Family not found"
+        message: "Family not found",
       });
     }
 
@@ -239,20 +233,17 @@ const updateFamilyDetails = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Family details updated successfully",
-      data: family
+      data: family,
     });
-
   } catch (error) {
-
     console.error("Error updating family details:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
-
   }
-}
+};
 
 const deleteParticularFamily = async (req, res) => {
   const session = await mongoose.startSession();
@@ -267,7 +258,7 @@ const deleteParticularFamily = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Valid family ID is required",
-        error: !familyId ? "Family ID is missing" : "Invalid family ID format"
+        error: !familyId ? "Family ID is missing" : "Invalid family ID format",
       });
     }
 
@@ -280,10 +271,9 @@ const deleteParticularFamily = async (req, res) => {
       await session.abortTransaction();
       return res.status(404).json({
         success: false,
-        message: "Family not found"
+        message: "Family not found",
       });
     }
-
 
     // Remove family from all users' families arrays
     await User.updateMany(
@@ -297,32 +287,33 @@ const deleteParticularFamily = async (req, res) => {
     await JoinRequest.deleteMany({ family: familyObjectId }, { session });
 
     // Delete the family
-    const deletedFamily = await Family.findByIdAndDelete(familyObjectId, { session });
+    const deletedFamily = await Family.findByIdAndDelete(familyObjectId, {
+      session,
+    });
 
     await session.commitTransaction();
 
     return res.status(200).json({
       success: true,
       message: "Family and all related data deleted successfully",
-      data: deletedFamily
+      data: deletedFamily,
     });
-
   } catch (error) {
     await session.abortTransaction();
     console.error("Error deleting family:", error);
 
-    if (error.name === 'CastError') {
+    if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
         message: "Invalid ID format",
-        error: error.message
+        error: error.message,
       });
     }
 
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   } finally {
     session.endSession();
@@ -332,30 +323,64 @@ const deleteParticularFamily = async (req, res) => {
 const getFiveRandomFamilySugs = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId);
-    const excludedFamilyIds = user.families;
+
+    // Validate userId format first
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID format",
+      });
+    }
+
+    // Convert to ObjectId immediately
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+
+    const user = await User.findById(userIdObj).populate("families.family");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Extract family IDs - handle case where family might be null
+    const excludedFamilyIds = user.families
+      .filter((f) => f.family) // Filter out any null families
+      .map((f) => new mongoose.Types.ObjectId(f.family._id));
 
     const families = await Family.aggregate([
       {
         $match: {
-          joinPolicy: 'auto',
-          _id: { $nin: excludedFamilyIds }
-        }
+          joinPolicy: "auto",
+          _id: { $nin: excludedFamilyIds },
+          "members.user": { $ne: userIdObj }, // Use the pre-created ObjectId
+        },
       },
       { $sample: { size: 5 } },
-      { $project: { _id: 1, name: 1, avatar: 1, description: 1, members: 1, creator: 1 } }
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          avatar: 1,
+          description: 1,
+          members: 1,
+          creator: 1,
+          membersCount: { $size: "$members" },
+        },
+      },
     ]);
-
 
     return res.status(200).json({
       success: true,
-      suggestions: families
+      suggestions: families,
     });
   } catch (error) {
-    console.error("💥 Error fetching random families:", error);
+    console.error("Error in getFiveRandomFamilySugs:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error while fetching suggestions"
+      message: "Internal server error",
+      error: error.message, // Include error message for debugging
     });
   }
 };
@@ -366,7 +391,7 @@ const joinRandomFamily = async (req, res) => {
     if (!familyId || !userId) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required"
+        message: "All fields are required",
       });
     }
 
@@ -374,7 +399,7 @@ const joinRandomFamily = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -382,26 +407,26 @@ const joinRandomFamily = async (req, res) => {
     if (!family) {
       return res.status(404).json({
         success: false,
-        message: "Family not found"
+        message: "Family not found",
       });
     }
 
-    if (family.joinPolicy !== 'auto') {
+    if (family.joinPolicy !== "auto") {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to join this family"
+        message: "You are not allowed to join this family",
       });
     }
 
     family.members.push({
       user: userId,
-      role: 'viewer',
-      status: 'approved'
+      role: "viewer",
+      status: "approved",
     });
 
     user.families.push({
       family: familyId,
-      role: 'Viewer'
+      role: "Viewer",
     });
 
     await family.save();
@@ -410,19 +435,16 @@ const joinRandomFamily = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Successfully joined the family",
-      family
+      family,
     });
-
   } catch (error) {
-
     console.error("💥 Error joining random family:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error while joining family"
+      message: "Server error while joining family",
     });
   }
-}
-
+};
 
 export {
   createFamily,
@@ -433,5 +455,5 @@ export {
   updateFamilyDetails,
   deleteParticularFamily,
   getFiveRandomFamilySugs,
-  joinRandomFamily
+  joinRandomFamily,
 };
