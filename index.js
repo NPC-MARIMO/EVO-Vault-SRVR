@@ -13,6 +13,7 @@ const profileRouter = require('./routes/profile.route')
 const familyRouter = require('./routes/family.route')
 const requestRouter = require('./routes/request.route')
 const mediaRouter = require('./routes/media.route')
+const forgotPassRouter = require('./routes/forgotpass.route')
 
 
 const port = process.env.PORT
@@ -35,6 +36,7 @@ app.use("/api/profile", profileRouter);
 app.use('/api/family', familyRouter);
 app.use('/api/request', requestRouter);
 app.use('/api/memory', mediaRouter);
+app.use("/api/password", forgotPassRouter);
 
 
 app.listen((port), () => console.log(`Example app listening on port ${port}`))      
